@@ -1,0 +1,17 @@
+# This repo holds docs + manifests only — never build output or binaries in the tree.
+# (Installers are attached to Releases, not committed.)
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Editors
+.vs/
+*.user
+
+# Stray downloaded assets (e.g. while testing the workflow locally)
+asset
+*.exe
+*.zip
+*.msi

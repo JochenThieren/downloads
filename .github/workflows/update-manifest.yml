@@ -1,0 +1,73 @@
+name: Update latest.json on release
+
+# When a release is published (tag <tool>-vX.Y.Z), regenerate that tool's
+# tools/<tool>/latest.json from the real published assets and commit it.
+on:
+  release:
+    types: [published, edited]
+
+permissions:
+  contents: write
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build tools/<tool>/latest.json from the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          # Tag convention: <tool>-v<version>  e.g. bingocaller-v1.0.1
+          case "$TAG" in
+            *-v*) : ;;
+            *) echo "Tag '$TAG' is not <tool>-v<version>; skipping."; exit 0 ;;
+          esac
+          tool="${TAG%-v*}"
+          version="${TAG##*-v}"
+
+          api="repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}"
+          # The installer = first asset that is not the checksum file.
+          installer=$(gh api "$api" --jq '.assets[] | select(.name | test("SHA256SUMS") | not) | .name' | head -n1)
+          if [ -z "$installer" ]; then echo "No installer asset on $TAG; skipping."; exit 0; fi
+
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${installer}"
+          curl -fsSL -o asset "$url"
+          sha=$(sha256sum asset | cut -d' ' -f1)
+          size=$(stat -c%s asset)
+          released=$(gh api "$api" --jq '.published_at' | cut -dT -f1)
+          notes=$(gh api "$api" --jq '.name // .tag_name')
+
+          mkdir -p "tools/${tool}"
+          cat > "tools/${tool}/latest.json" <<EOF
+          {
+            "tool": "${tool}",
+            "version": "${version}",
+            "released": "${released}",
+            "notes": "${notes}",
+            "file": "${installer}",
+            "sizeBytes": ${size},
+            "sha256": "${sha}",
+            "url": "${url}"
+          }
+          EOF
+          rm -f asset
+          echo "Wrote tools/${tool}/latest.json"
+
+      - name: Commit the manifest
+        run: |
+          set -euo pipefail
+          git config user.name "release-bot"
+          git config user.email "noreply@jthieren.be"
+          git add tools/*/latest.json
+          if git diff --cached --quiet; then
+            echo "No manifest change."
+          else
+            git commit -m "Update ${TAG} manifest"
+            git push
+          fi
+        env:
+          TAG: ${{ github.event.release.tag_name }}

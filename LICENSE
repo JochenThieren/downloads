@@ -1,0 +1,13 @@
+Distribution repository
+========================
+
+This repository is a distribution point. It contains documentation and release
+manifests only; it contains no source code.
+
+Each program distributed through the Releases of this repository is governed by its
+own licence, which is included with that program's installer and/or stated in that
+tool's own repository. Nothing in this repository grants any licence to any program
+beyond what that program's own licence provides.
+
+The documentation and manifest files in this repository are provided as-is, without
+warranty of any kind.

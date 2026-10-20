@@ -1,0 +1,7 @@
+# Keep CI and shell content LF so it runs correctly on Linux runners,
+# regardless of each contributor's autocrlf setting.
+* text=auto
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.json text eol=lf

@@ -1,0 +1,10 @@
+{
+  "tool": "TOOLKEY",
+  "version": "0.0.0",
+  "released": "YYYY-MM-DD",
+  "notes": "One line of release notes.",
+  "file": "Tool-0.0.0-setup.exe",
+  "sizeBytes": 0,
+  "sha256": "TODO — the release workflow fills this in",
+  "url": "https://github.com/JochenThieren/downloads/releases/download/TOOLKEY-v0.0.0/Tool-0.0.0-setup.exe"
+}
