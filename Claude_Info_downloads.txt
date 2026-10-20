@@ -1,0 +1,112 @@
+================================================================================
+ downloads - Claude_Info (living record)
+================================================================================
+Public distribution point for Jochen Thieren's Windows tools. This file is the
+ongoing record, like the other projects' Claude_Info files.
+
+Repo:    C:\CA_Development\downloads  -> https://github.com/JochenThieren/downloads  (PUBLIC)
+Created: 2026-10-20
+Updated: 2026-10-20
+
+
+--------------------------------------------------------------------------------
+ 1. WHY IT EXISTS
+--------------------------------------------------------------------------------
+Lets people download the tools directly, hosted by Jochen, WITHOUT publishing the
+source code. The trick: a PUBLIC repo that contains NO source - only docs and a
+small manifest per tool - with the actual installers attached to GitHub *Releases*
+(served over GitHub's CDN, free, anonymous download). Source for the open-source
+tools stays in each tool's own repository; closed-source freeware ships only its
+binary here.
+
+Key mechanic learned: a PRIVATE repo's release assets are NOT anonymously
+downloadable (they need an auth token), so public downloads require a public,
+code-free repo like this. The alternative (independence from GitHub) is Azure Blob
+Storage - same site links, different URL.
+
+This is the PUBLIC channel. It is separate from the site's GATED channel for the
+Bizerba tools (jthieren.be /api/download/{tool}, X-CS-Key gated + rate limited) -
+never mix them. See [[project-jthieren-site]].
+
+
+--------------------------------------------------------------------------------
+ 2. LAYOUT (docs + manifests only - never commit binaries into the tree)
+--------------------------------------------------------------------------------
+  README.md                         what it is, download+verify, publish steps
+  LICENSE                           "distribution repo" notice (per-tool EULAs ship
+                                    with each release)
+  .gitignore                        keeps binaries/build output OUT of the tree
+  .gitattributes                    LF for yml/sh/json (so the workflow runs clean
+                                    on the Linux runner regardless of autocrlf)
+  tools/_template/                  COPY this to tools/<tool>/ for a new tool
+     README.md, CHANGELOG.md, latest.json
+  tools/<tool>/latest.json          the STABLE pointer the website reads:
+                                    { tool, version, released, notes, file,
+                                      sizeBytes, sha256, url }
+  .github/workflows/update-manifest.yml   on a release -> regenerates that tool's
+                                    latest.json from the real assets, commits it
+  .github/RELEASE_TEMPLATE.md
+  .github/ISSUE_TEMPLATE/bug_report.md
+
+
+--------------------------------------------------------------------------------
+ 3. CONVENTIONS
+--------------------------------------------------------------------------------
+- Tag:            <tool>-vX.Y.Z          e.g. bingocaller-v1.0.1
+- Release title:  <Tool> X.Y.Z
+- Installer:      <Tool>-X.Y.Z-setup.exe
+- Checksums:      SHA256SUMS.txt attached to every release
+- Stable URL:     https://github.com/JochenThieren/downloads/releases/download/<tag>/<asset>
+- IMPORTANT: /releases/latest is REPO-WIDE (newest release of ANY tool). For a
+  tool's true latest, link to tools/<tool>/latest.json - that's why the manifest
+  exists.
+
+
+--------------------------------------------------------------------------------
+ 4. PUBLISHING A RELEASE
+--------------------------------------------------------------------------------
+Build happens in the tool's own (often private) repo; only the finished binary is
+pushed here. From that repo's CI or by hand:
+
+  gh release create "<tool>-v<version>" dist/<Tool>-<version>-setup.exe SHA256SUMS.txt \
+     --repo JochenThieren/downloads --title "<Tool> <version>" --notes-file notes.md
+
+Then this repo's update-manifest.yml regenerates tools/<tool>/latest.json
+automatically (triggers on release published/edited; parses the tag into
+tool/version; downloads the installer asset to compute sha256 + size; commits).
+
+Cross-repo publishing from a PRIVATE source repo needs a PAT secret in THAT repo
+(e.g. GH_PAT) with contents:write on downloads. A release created directly in this
+repo needs nothing extra (the bundled github.token covers the manifest workflow).
+
+NOTE (gh not installed here 2026-10-20): the GitHub CLI is not on this machine's
+PATH. Releases were driven via the REST API using the cached git credential
+(git credential fill -> Bearer token -> api.github.com / uploads.github.com).
+GitHub's release JSON uses "key": value WITH a space - parse space-tolerantly.
+
+
+--------------------------------------------------------------------------------
+ 5. WEBSITE WIRING (jthieren.be)
+--------------------------------------------------------------------------------
+ToolCatalog.cs (JThierenSite/Software/ToolCatalog.cs) already has DownloadUrl /
+SourceUrl / DownloadNote. Point a tool's DownloadUrl at its latest.json "url".
+Optional (not yet added): three ToolInfo fields Version / SizeBytes / Sha256 so the
+page shows the version + a verifiable checksum - baked from latest.json at build,
+or read at runtime.
+
+
+--------------------------------------------------------------------------------
+ 6. STATUS
+--------------------------------------------------------------------------------
+2026-10-20: repo created (empty, public) + scaffold committed and pushed
+  (commit 67364b0 "Scaffold the downloads distribution repo..."). NO real tools
+  added yet - they are still under construction; _template is the preparation, you
+  clone it when a tool has a shippable installer. Smoke test of the release pipeline
+  run this session with a throwaway prerelease demo-v0.0.1 (to be torn down).
+
+NEXT (when a tool ships): copy tools/_template -> tools/<tool>/, cut a release,
+let the workflow write latest.json, wire the site's DownloadUrl. First real
+closed-source candidate: SportScoreboard. BingoCaller is already MIT/public - route
+only its binary here if you want one consistent download front. Later: Azure
+Trusted Signing (~$10/mo) to sign installers - the real trust win vs SmartScreen.
+================================================================================
