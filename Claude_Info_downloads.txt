@@ -98,11 +98,25 @@ or read at runtime.
 --------------------------------------------------------------------------------
  6. STATUS
 --------------------------------------------------------------------------------
-2026-10-20: repo created (empty, public) + scaffold committed and pushed
-  (commit 67364b0 "Scaffold the downloads distribution repo..."). NO real tools
-  added yet - they are still under construction; _template is the preparation, you
-  clone it when a tool has a shippable installer. Smoke test of the release pipeline
-  run this session with a throwaway prerelease demo-v0.0.1 (to be torn down).
+2026-10-20: repo created (empty, public) + scaffold committed and pushed. NO real
+  tools added yet - they are still under construction; _template is the preparation,
+  you clone it when a tool has a shippable installer.
+2026-10-20: release pipeline SMOKE-TESTED END-TO-END and PASSED. A throwaway
+  prerelease demo-v0.0.1 (dummy zip + SHA256SUMS) drove the workflow, which produced
+  a correct tools/demo/latest.json (version 0.0.1, right file, sizeBytes, sha256
+  matching the asset, stable url) and auto-committed it as release-bot. Demo release,
+  tag, and tools/demo/ then removed; repo clean.
+
+  TWO LESSONS from the smoke test (important when editing this workflow):
+  (a) `on: release` runs the workflow DEFINITION AS IT EXISTS AT THE TAG'S COMMIT,
+      not at main HEAD. A fix pushed to main does nothing for a release whose tag
+      still points at an older commit - recreate/move the tag onto the fixed commit.
+  (b) A release event checks out the TAG (DETACHED HEAD). The commit-back step needs
+      actions/checkout with `ref: main` (now set), else `git push` fails with
+      "You are not currently on a branch" (exit 128). Also: creating a release fires
+      `published` BEFORE assets are uploaded, so the manifest step needs the assets -
+      upload them, then PATCH the release to emit `edited` (or attach assets at
+      create time).
 
 NEXT (when a tool ships): copy tools/_template -> tools/<tool>/, cut a release,
 let the workflow write latest.json, wire the site's DownloadUrl. First real
